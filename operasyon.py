@@ -16,7 +16,7 @@ VIP_USERS = [OWNER_ID]
 
 aktif_islemler = {}
 
-# Render'ın uyumasını engelleyen sahte sunucu
+# Render'ın uyumasını engelleyen sunucu
 def run_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     handler = http.server.SimpleHTTPRequestHandler
@@ -31,8 +31,6 @@ threading.Thread(target=run_dummy_server, daemon=True).start()
 # --- SMS GÖNDERME FONKSİYONU ---
 def operasyon_baslat(message, numara, mod_turu):
     user_id = message.from_user.id
-    
-    # Dosya yolunu garantiye alıyoruz (Render için kritik)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     enough_path = os.path.join(current_dir, "enough.py")
     
@@ -42,9 +40,10 @@ def operasyon_baslat(message, numara, mod_turu):
             # 2 (Mod) -> Numara -> Enter (Mail Boş)
             girdiler = f"2\n{numara}\n\n" 
         else:
-            bot.send_message(message.chat.id, f"✅ {numara} için **Normal (Mod 1)** başlatıldı...\n🔢 Adet: 200 | ⏱️ Aralık: 3 sn")
-            # SENİN SIRALAMAN: 1 -> Numara -> Enter (Mail) -> 200 (Adet) -> 3 (Aralık)
-            girdiler = f"1\n{numara}\n\n200\n3\n"
+            bot.send_message(message.chat.id, f"✅ {numara} için **Normal (Mod 1)** başlatıldı...\n🔢 Adet: 200 | ⏱️ Aralık: 1 sn")
+            # YENİ SIRALAMAN: 1 -> Numara -> Enter (Mail) -> 200 (Adet) -> 1 (Aralık)
+            # enough.py içindeki input() sıralarına tam uyum sağlar.
+            girdiler = f"1\n{numara}\n\n200\n1\n"
 
         # Arka planda enough.py'yi çalıştırır
         process = subprocess.Popen(
@@ -75,7 +74,7 @@ def operasyon_baslat(message, numara, mod_turu):
 def welcome(message):
     msg = (
         "🚀 **SMS-BOT-TR PANELİ** 🚀\n\n"
-        "👉 `/sms numara` (200 Adet / 3 Saniye)\n"
+        "👉 `/sms numara` (200 Adet / 1 Saniye)\n"
         "👉 `/turbo numara` (Sonsuz VIP Mod)\n"
         "👉 `/durdur` (İşlemi Kes)\n"
         "👉 `/id` (ID öğren)"
@@ -114,21 +113,20 @@ def get_id(message):
 def normal_attack(message):
     parcalar = message.text.split()
     if len(parcalar) < 2:
-        bot.reply_to(message, "❌ Numara girmelisin! Örnek: `/sms 5051112233`")
+        bot.reply_to(message, "❌ Örnek: `/sms 5051112233`")
         return
     threading.Thread(target=operasyon_baslat, args=(message, parcalar[1], "normal")).start()
 
 @bot.message_handler(commands=['turbo'])
 def turbo_attack(message):
     if message.from_user.id not in VIP_USERS:
-        bot.reply_to(message, "⚠️ Bu özellik için VIP olman gerekiyor!")
+        bot.reply_to(message, "⚠️ Bu özellik VIP içindir!")
         return
     parcalar = message.text.split()
     if len(parcalar) < 2:
-        bot.reply_to(message, "❌ Numara girmelisin! Örnek: `/turbo 5051112233`")
+        bot.reply_to(message, "❌ Örnek: `/turbo 5051112233`")
         return
     threading.Thread(target=operasyon_baslat, args=(message, parcalar[1], "turbo")).start()
 
 if __name__ == "__main__":
-    print("--- BOT OPERASYON DOSYASI AKTİF ---")
     bot.infinity_polling()
